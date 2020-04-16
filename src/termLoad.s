@@ -3,6 +3,12 @@
 #zmienne:
 # character - służy do przechowania aktualnie przetwarzanego znaku
 # inputSize - ilość znaków wprowadzonych przez użytkownika
+# segment - zmienna wykorzystywana podczas zczytywania znaków z konsoli i zamiany ich na wartość, oraz podczas pobierania danych ze stosu do dynamicznie przydzielonej pamięci, by przechować zmienianą wartość
+# shift - ilość bitów do przesunięcia
+#
+#Wykorzystane zmienne globalne
+# dataStartWsk - wksaźnik na początek danych przechowywanych w pamięci
+# dataLength - długość zarezerwowanej pamięci dataLength*4
 #
 #stałe tekstowe:
 # msg_load - informacja wyświetlania podczas ładowania wartości
@@ -23,6 +29,9 @@
 #procedury:
 # error_empty - wywolywana, gdy został podany pusty ciąg znaków
 # error_wrong - wywoływana, gdy został podany nieprawidłowy znak
+# termLoad - ładowanie danych z terminala do dynamicznie przydzielonej pamięci
+#	-dataStartWsk - wskaźnik na początek przydzielonej pamięci
+#	-dataLength - ługość zarezerwowanej pamięci dataLength*4
 
 .section .data
 	.equ SYS_EXIT, 1
@@ -34,7 +43,8 @@
 character: 
 	.ascii " "
 	.equ CHARACTER_L, . - character
-
+segment: .long 0
+shift: .byte 28
 .section .text
 msg_load:
 	.ascii "Podaj liczbe szesnastkowo (0-9, A-F), ktorej pierwszenstwo chcesz sprawdzic: "
@@ -74,10 +84,11 @@ termLoad:
 	cmpb $10, %al			#jezeli pierwszy znak jest znakiem nowej linii to błąd
 	je error_empty
 
-	xor %esi, %esi			#liczba przetworzonych bajtów. Wstaw 0
+	xor %esi, %esi			#liczba przetworzonych doubleword. Wstaw 0
 
 loadSign:
 
+	#sprawdzanie czy znaki są poprawne i zamiana ich na wartość danego znaku
 	cmpl $48, %eax
 	jge checkIfHex			#jeżeli większe lub równe 48 to musi być znak hex
 	cmpl $10, %eax
@@ -98,10 +109,24 @@ checkIfAfDown:
 	jmp error_wrong			#w przeciwnym wypadku jest złym znakiem
 isAfSign:
 	subl $55, %eax			#odejmuje wartość 55, aby przykładowo A(65) miało wartość 10
+	#========================================================================
 
 endChecking:
-	incl %esi			#inkrementacja iloścli znaków
-	pushl %eax			#dodanie na stos wartości
+	
+	#dodawanie kolejnych wartości do segment i jeśli się wypełni dodawanie go do stosu
+	movb shift, %cl
+	shll %cl, %eax			#przesunięcie o daną ilość bitów
+	addl %eax, segment		#dodanie nowej wartości do segmentu danych
+	cmpb $0, shift			#jeżli różne od 0 to pomiń
+	jne skipChangeShift
+	movl $32, shift			#przenieś 32 do przesunięcia
+	pushl segment			#dodaj segment danych na stos
+	movl $0, segment		#wyzeruj segment dla miejsca na nowe dane
+	incl %esi			#inkrementacja iloścli doubleword
+skipChangeShift:
+	subl $4, shift			#odejmij 4 od shift (zawsze jest to wykonywane dlatego w shift dane jest 32 żeby wróciło do 28)
+	#=================================================================================-
+
 	#Wczytywanie kolejnych znaków
 	movl $SYS_READ, %eax
 	movl $STD_IN, %ebx
@@ -114,22 +139,17 @@ endChecking:
 	movb character, %al		#przeniesienie znaku do rejestru al
 	jmp loadSign
 
-loadEnd: #źle policzyłem trzeba to zmienić trochęq
-	movl $4, %ebx			#wartosc, przez którą liczba będzie dzielona
-	movl %esi, %eax			#wartość do podzielenia
-	movl $0, %edx			#wartość do podzielenia
-	divl %ebx
-	movl $4, %eax
-	subl %edx, %eax			#reszte odejmuję od 4 żeby zobaczyć ile bajtów brakuje
-	cmpl $4, %eax			#jeżeli zostało 4 to znaczy że nie trzeba nic dodawać
-	jne skipReset
-	movl $0, %eax
+loadEnd:
+	#zadbanie by ostatni segment trafił na stos
+	cmpl $28, shift
+	je skipLastSegment		#jeżeli shift równy 28, oznacza że wszystkie cyfry trafiły na stos
+	pushl segment
+	incl %esi			#inkrementacja iloścli doubleword
+skipLastSegment:
+	#==========================================
 
-skipReset:
-	addl %esi, %eax			#dodanie bajtów do pełnego double word
-	movl $8, %ebx
-	mull %ebx			#pomnożenie przez wartość bajta
-	movl %eax, %edi			#ilość bitów do zalokowania e %edi
+	movl %esi, dataLength		#przeniesienie długości do zmiennej
+	shll $2, %esi			#długość w bajtach
 
 	#pobranie wartości obecnego przerwania programu
 	movl $SYS_BRK, %eax
@@ -137,7 +157,56 @@ skipReset:
 	int $0x80
 	#==============================================
 
-	popl %ebp			#epilog funkcji
+	movl %eax, dataStartWsk		#początek segmentu danych do rezerwacji
+	movl %eax, %ebx
+	addl %esi, %ebx			#gdzie będzie koniec nowego przewania programu
+
+	#nadanie nowej wartości przerwania programu
+	movl $SYS_BRK, %eax
+	int $0x80
+	#==========================================
+
+	#wczytanie wartości ze stosu do pamięci
+	movl dataLength, %esi			#indeks liczby
+	addb $4, shift				#przywrócenie wartości shift żeby wiedzieć o ile przesunąć wartości ze stosu (FFFFF000 do 000FFFFF)
+	movl dataStartWsk, %edx			#przeniesienie adresu do rejestru
+	cmpb $32, shift
+	jne skipZeroReturn			#jeżeli shift równy 32 to tak naprawdę będzie 0
+	movb $0, shift
+skipZeroReturn:
+	popl %eax				#pobranie pierwszej wartości ze stosu
+	movb $32, %cl				#ilość przesunięcia dla kolejnej liczby
+	subb shift, %cl
+movToData:
+	cmpl $1, %esi
+	jl skipMovData				#jeżeli indeks mniejszy od jeden to zrób ostatnie przepisanie
+	decl %esi
+	popl %ebx				#pobranie drugiej liczby do przesunięcia
+	movl %ebx, segment			#wartość drugiej liczby musi być zachowana dla kolejnej iteracji
+	movl $0, (%edx,%esi,4)			#wyzerowanie wartości obecnego segmentu	
+	xchgb %cl, shift			#zamiana wartości przesunięcia pierwszej i drugiej liczby
+	shrl %cl, %eax				#przesunięcie w prawo pierwszej liczby
+	addl %eax, (%edx,%esi,4)		#dodanie jej wartości do obecnego segmentu
+	xchgb %cl, shift			#zamiana wartości przesunięcia pierwszej i drugiej
+	cmpb $32, %cl
+	je setShift0				#nie da się przesunąć o 32 bity więc ustaw na 0
+	shll %cl, %ebx				#przesunięcie drugiej liczby
+	jmp skipSetShift0
+setShift0:
+	movl $0, %ebx				#ustaw na 0
+skipSetShift0:
+	addl %ebx, (%edx,%esi,4)		#dodanie jej wartości do obecnego segmentu
+	movl segment, %eax			#nadanie wartości drugiej liczby jako pierwszej
+	jmp movToData
+skipMovData:
+	decl %esi
+	xchgb %cl, shift			#zamiana wartości przesunięcia pierwszej i drugiej
+	shrl %cl, %eax				#przesunięcie w prawo ostatniej liczby
+	movl $0, (%edx,%esi,4)			#wyzerowanie wartości obecnego segmentu	
+	addl %eax, (%edx,%esi,4)		#dodanie wartości ostatniego elementu
+	#======================================
+t1:
+	popl %ebp				#epilog funkcji
 	ret
 
 

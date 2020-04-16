@@ -9,10 +9,12 @@
 #
 .section .data
 	.equ SYS_EXIT, 1
+dataStartWsk: .long 0
+dataLength: .long 0
 
 .section .text
 
-.global _start
+.global _start, dataStartWsk, dataLength
 _start:
 	call termLoad
 	movl $SYS_EXIT, %eax		#kod komendy systemowej wyjscia
