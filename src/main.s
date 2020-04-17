@@ -16,6 +16,7 @@ dataLength: .long 0
 
 .global _start, dataStartWsk, dataLength
 _start:
+
 	call termLoad
 	movl $SYS_EXIT, %eax		#kod komendy systemowej wyjscia
 	xorl %ebx, %ebx			#zwraca status 0

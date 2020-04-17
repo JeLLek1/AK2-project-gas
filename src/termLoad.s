@@ -24,7 +24,6 @@
 # SYS_WRITE - kod wywołania systemowego zapisu do pliku
 # STD_IN - kod wejscie terminala podczas odczytu
 # STD_OUT - kod wyjścia terminala podczas zapisu
-# SYS_BRK - kod wywołania systemowego zmiany przerwania programu
 #
 #procedury:
 # error_empty - wywolywana, gdy został podany pusty ciąg znaków
@@ -151,20 +150,10 @@ skipLastSegment:
 	movl %esi, dataLength		#przeniesienie długości do zmiennej
 	shll $2, %esi			#długość w bajtach
 
-	#pobranie wartości obecnego przerwania programu
-	movl $SYS_BRK, %eax
-	xorl %ebx, %ebx
-	int $0x80
-	#==============================================
-
-	movl %eax, dataStartWsk		#początek segmentu danych do rezerwacji
-	movl %eax, %ebx
-	addl %esi, %ebx			#gdzie będzie koniec nowego przewania programu
-
-	#nadanie nowej wartości przerwania programu
-	movl $SYS_BRK, %eax
-	int $0x80
-	#==========================================
+	pushl %esi			#argumnet funkcji
+	call allocate			#funlcka alokacji
+	addl $4, %esp			#zdjęcie argumentu
+	movl %eax, dataStartWsk		#wynik funkcji
 
 	#wczytanie wartości ze stosu do pamięci
 	movl dataLength, %esi			#indeks liczby
@@ -205,8 +194,9 @@ skipMovData:
 	movl $0, (%edx,%esi,4)			#wyzerowanie wartości obecnego segmentu	
 	addl %eax, (%edx,%esi,4)		#dodanie wartości ostatniego elementu
 	#======================================
-t1:
-	popl %ebp				#epilog funkcji
+
+	movl %ebp, %esp				#odtworzenie starego stosu
+	popl %ebp
 	ret
 
 
