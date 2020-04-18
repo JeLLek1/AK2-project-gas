@@ -16,10 +16,11 @@
 
 .global allocate
 
+.type allocate, @function
 allocate:
 	push %ebp
 	mov %esp, %ebp			#nowa ramka call
-	subl $4, %esp			#zmienna lokalna
+	subl $4, %esp			#miejsce na zmienną lokalną
 
 	movl 8(%ebp), %esi		#argument funkcji
 
