@@ -2,11 +2,13 @@
 #
 #zmienne:
 # character - służy do przechowania aktualnie przetwarzanego znaku
-# -4(%ebp) - zmienna wykorzystywana podczas zczytywania znaków z konsoli i zamiany ich na wartość, oraz podczas pobierania danych ze stosu do dynamicznie przydzielonej pamięci, by przechować zmienianą wartość
-# -8(%ebp) - ilość bitów do przesunięcia
+#
+#zmienne lokalne:
+# segment - zmienna wykorzystywana podczas zczytywania znaków z konsoli i zamiany ich na wartość, oraz podczas pobierania danych ze stosu do dynamicznie przydzielonej pamięci, by przechować zmienianą wartość
+# shift - ilość bitów do przesunięcia
 #
 #Wykorzystane zmienne globalne
-# dataStartWsk - wksaźnik na początek danych przechowywanych w pamięci
+# dataStartPtr - wksaźnik na początek danych przechowywanych w pamięci
 # dataLength - długość zarezerwowanej pamięci dataLength*4
 #
 #stałe tekstowe:
@@ -28,7 +30,7 @@
 # error_empty - wywolywana, gdy został podany pusty ciąg znaków
 # error_wrong - wywoływana, gdy został podany nieprawidłowy znak
 # termLoad - ładowanie danych z terminala do dynamicznie przydzielonej pamięci
-#	-dataStartWsk - wskaźnik na początek przydzielonej pamięci
+#	-dataStartPtr - wskaźnik na początek przydzielonej pamięci
 #	-dataLength - ługość zarezerwowanej pamięci dataLength*4
 
 .section .data
@@ -38,6 +40,8 @@
 	.equ STD_IN, 0
 	.equ STD_OUT, 1
 	.equ SYS_BRK, 45
+	.equ segment, -4
+	.equ shift, -8
 
 character: 
 	.ascii " "
@@ -84,8 +88,8 @@ termLoad:
 	je error_empty
 
 	xor %esi, %esi			#liczba przetworzonych doubleword. Wstaw 0
-	movl $0, -4(%ebp)		#wyzeruj -4(%ebp)
-	movb $28, -8(%ebp)		#wstaw 28 do (przesunięcia) -8(%ebp)
+	movl $0, segment(%ebp)		#wyzeruj segment(%ebp)
+	movb $28, shift(%ebp)		#wstaw 28 do (przesunięcia) shift(%ebp)
 
 loadSign:
 
@@ -114,18 +118,18 @@ isAfSign:
 
 endChecking:
 	
-	#dodawanie kolejnych wartości do -4(%ebp) i jeśli się wypełni dodawanie go do stosu
-	movb -8(%ebp), %cl
+	#dodawanie kolejnych wartości do segment(%ebp) i jeśli się wypełni dodawanie go do stosu
+	movb shift(%ebp), %cl
 	shll %cl, %eax			#przesunięcie o daną ilość bitów
-	addl %eax, -4(%ebp)		#dodanie nowej wartości do -4(%ebp) danych
-	cmpb $0, -8(%ebp)		#jeżli różne od 0 to pomiń
+	addl %eax, segment(%ebp)	#dodanie nowej wartości do segment(%ebp) danych
+	cmpb $0, shift(%ebp)		#jeżli różne od 0 to pomiń
 	jne skipChangeShift
-	movb $32, -8(%ebp)		#przenieś 32 do przesunięcia
-	pushl -4(%ebp)			#dodaj -4(%ebp) danych na stos
-	movl $0, -4(%ebp)		#wyzeruj -4(%ebp) dla miejsca na nowe dane
+	movb $32, shift(%ebp)		#przenieś 32 do przesunięcia
+	pushl segment(%ebp)		#dodaj segment(%ebp) danych na stos
+	movl $0, segment(%ebp)		#wyzeruj segment(%ebp) dla miejsca na nowe dane
 	incl %esi			#inkrementacja iloścli doubleword
 skipChangeShift:
-	subb $4, -8(%ebp)		#odejmij 4 od -8(%ebp) (zawsze jest to wykonywane dlatego w -8(%ebp) dane jest 32 żeby wróciło do 28)
+	subb $4, shift(%ebp)		#odejmij 4 od shift(%ebp) (zawsze jest to wykonywane dlatego w shift(%ebp) dane jest 32 żeby wróciło do 28)
 	#=================================================================================-
 
 	#Wczytywanie kolejnych znaków
@@ -141,10 +145,10 @@ skipChangeShift:
 	jmp loadSign
 
 loadEnd:
-	#zadbanie by ostatni -4(%ebp) trafił na stos
-	cmpb $28, -8(%ebp)
-	je skipLastSegment		#jeżeli -8(%ebp) równy 28, oznacza że wszystkie cyfry trafiły na stos
-	pushl -4(%ebp)
+	#zadbanie by ostatni segment(%ebp) trafił na stos
+	cmpb $28, shift(%ebp)
+	je skipLastSegment		#jeżeli shift(%ebp) równy 28, oznacza że wszystkie cyfry trafiły na stos
+	pushl segment(%ebp)
 	incl %esi			#inkrementacja iloścli doubleword
 skipLastSegment:
 	#==========================================
@@ -155,30 +159,30 @@ skipLastSegment:
 	pushl %esi			#argumnet funkcji
 	call allocate			#funlcka alokacji
 	addl $4, %esp			#zdjęcie argumentu
-	movl %eax, dataStartWsk		#wynik funkcji
+	movl %eax, dataStartPtr		#wynik funkcji
 
 	#wczytanie wartości ze stosu do pamięci
 	movl dataLength, %esi			#indeks liczby
-	addb $4, -8(%ebp)			#przywrócenie wartości -8(%ebp) żeby wiedzieć o ile przesunąć wartości ze stosu (FFFFF000 do 000FFFFF)
-	movl dataStartWsk, %edx			#przeniesienie adresu do rejestru
-	cmpb $32, -8(%ebp)
-	jne skipZeroReturn			#jeżeli -8(%ebp) równy 32 to tak naprawdę będzie 0
-	movb $0, -8(%ebp)
+	addb $4, shift(%ebp)			#przywrócenie wartości shift(%ebp) żeby wiedzieć o ile przesunąć wartości ze stosu (FFFFF000 do 000FFFFF)
+	movl dataStartPtr, %edx			#przeniesienie adresu do rejestru
+	cmpb $32, shift(%ebp)
+	jne skipZeroReturn			#jeżeli shift(%ebp) równy 32 to tak naprawdę będzie 0
+	movb $0, shift(%ebp)
 skipZeroReturn:
 	popl %eax				#pobranie pierwszej wartości ze stosu
 	movb $32, %cl				#ilość przesunięcia dla kolejnej liczby
-	subb -8(%ebp), %cl
+	subb shift(%ebp), %cl
 movToData:
 	cmpl $1, %esi
 	jle skipMovData				#jeżeli indeks mniejszy od jeden to zrób ostatnie przepisanie
 	decl %esi
 	popl %ebx				#pobranie drugiej liczby do przesunięcia
-	movl %ebx, -4(%ebp)			#wartość drugiej liczby musi być zachowana dla kolejnej iteracji
-	movl $0, (%edx,%esi,4)			#wyzerowanie wartości obecnego -4(%ebp)	
-	xchgb %cl, -8(%ebp)			#zamiana wartości przesunięcia pierwszej i drugiej liczby
+	movl %ebx, segment(%ebp)		#wartość drugiej liczby musi być zachowana dla kolejnej iteracji
+	movl $0, (%edx,%esi,4)			#wyzerowanie wartości obecnego segment(%ebp)	
+	xchgb %cl, shift(%ebp)			#zamiana wartości przesunięcia pierwszej i drugiej liczby
 	shrl %cl, %eax				#przesunięcie w prawo pierwszej liczby
-	addl %eax, (%edx,%esi,4)		#dodanie jej wartości do obecnego -4(%ebp)
-	xchgb %cl, -8(%ebp)			#zamiana wartości przesunięcia pierwszej i drugiej
+	addl %eax, (%edx,%esi,4)		#dodanie jej wartości do obecnego segment(%ebp)
+	xchgb %cl, shift(%ebp)			#zamiana wartości przesunięcia pierwszej i drugiej
 	cmpb $32, %cl
 	je setShift0				#nie da się przesunąć o 32 bity więc ustaw na 0
 	shll %cl, %ebx				#przesunięcie drugiej liczby
@@ -186,14 +190,14 @@ movToData:
 setShift0:
 	movl $0, %ebx				#ustaw na 0
 skipSetShift0:
-	addl %ebx, (%edx,%esi,4)		#dodanie jej wartości do obecnego -4(%ebp)
-	movl -4(%ebp), %eax			#nadanie wartości drugiej liczby jako pierwszej
+	addl %ebx, (%edx,%esi,4)		#dodanie jej wartości do obecnego segment(%ebp)
+	movl segment(%ebp), %eax		#nadanie wartości drugiej liczby jako pierwszej
 	jmp movToData
 skipMovData:
 	decl %esi
-	xchgb %cl, -8(%ebp)			#zamiana wartości przesunięcia pierwszej i drugiej
+	xchgb %cl, shift(%ebp)			#zamiana wartości przesunięcia pierwszej i drugiej
 	shrl %cl, %eax				#przesunięcie w prawo ostatniej liczby
-	movl $0, (%edx,%esi,4)			#wyzerowanie wartości obecnego -4(%ebp)	
+	movl $0, (%edx,%esi,4)			#wyzerowanie wartości obecnego segment%ebp)	
 	addl %eax, (%edx,%esi,4)		#dodanie wartości ostatniego elementu
 	#======================================
 

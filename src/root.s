@@ -1,0 +1,117 @@
+#Obliczanie pierwiastka kwadratowego liczby dataStartWsk
+#schemat pierwiastka taki, jak na zajęciach AK1(binarny cyfra po cyfrze)
+#
+#Dane:
+# dataStartWsk - początek obszaru pamięci dla pierwiastka do obliczenia
+# dataLength - długość danych * 4 bajty
+#
+#Wynik:
+# rootStartWsk - początek obszatu pamięci dla wyniku
+#
+#Zmienne lokalne:
+# numberTempPtr - wskaźnik początku kopii liczby pierwiastkowanej
+# bit - zawsze 1 bit na danej pozycji 32 bitowej
+# bitIndex - indeks segmentu danych
+
+.section .data
+	.equ numberTempPtr, -4
+	.equ bit, -8
+	.equ bitIndex, -12
+
+.section .text
+
+.global root
+
+.type root, @function
+root:
+	pushl %ebp
+	movl %esp, %ebp			#prolog funkcji (jakby trzeba bylo korzystac z argumentow
+	subl $12, %esp			#miejsce na zmienne lokalne
+
+	#alokacja pamięci dla wyniku
+	movl dataLength, %eax
+	shll $2, %eax			#długość w bajtach
+	pushl %eax			#argumnet funkcji
+	call allocate			#funkcja alokacji
+	addl $4, %esp			#zdjęcie argumentu
+	movl %eax, rootStartPtr		#wynik funkcji
+	#===========================
+
+	#alokacja pamięci dla kopii liczby pierwiastkowanej i kopiowanie danych + czyszczenie wyniku
+	movl dataLength, %eax
+	shll $2, %eax				#długość w bajtach
+	pushl %eax				#argumnet funkcji
+	call allocate				#funkcja alokacji
+	addl $4, %esp				#zdjęcie argumentu
+	movl %eax, numberTempPtr(%ebp)		#wynik funkcji
+
+	movl dataLength, %esi
+	movl dataStartPtr, %edx			#przeniesienie adresu początku do rejestru
+	movl numberTempPtr(%ebp), %ecx		#przeniesienie atresu początku temp do rejestru
+	movl rootStartPtr, %ebx			#przeniesienie adresu początku root do rejestru
+copyToTemp:
+	decl %esi
+	movl (%edx,%esi,4), %eax
+	movl %eax, (%ecx,%esi,4)		#skopiowanie wartości do pamięci temp
+	movl $0, (%ebx,%esi,4)			#czyść miejsce na wynik pierwiastka
+	cmpl $0, %esi				#wykonuj dopuki(%eax>0)
+	jg copyToTemp
+	#===========================
+
+	#Wyliczenie pierwszej 1 różnicy (zmiana co 4 potęgę)
+	movl $0x40000000, bit(%ebp)		#ustawienie przedostatniego bitu (0100...0)
+	movl $0, bitIndex(%ebp)			#indeks bitu jest równy końcowi danych
+
+	movl dataStartPtr, %eax
+	movl (%eax), %eax			#wczytanie najwyższej pozycji liczby
+	#bit będzie przesuwany o 2 w prawo aż będzie mniejszy lub równy liczbie.
+	#z racji że jakaś liczba zawsze jest w indeksie 0 to wystarczy tylko ten indeks sprawdzić
+searchHiPow4:
+	cmpl bit(%ebp), %eax
+	jae skipSearchHiPow4			#jeżeli %eax większe lub równe od ustawianego bitu to przestań przesuwać bit
+	shrl $2, bit(%ebp)			#przesunięcie bitu o dwa w prawo
+	jmp searchHiPow4
+skipSearchHiPow4:
+	#===================================================
+
+
+
+
+	#obliczanie pierwiastka
+	movl rootStartPtr, %edx			#przeniesienie adresu początku root do rejestru
+	movl numberTempPtr(%ebp), %ecx		#przeniesienie atresu początku temp do rejestru
+	movl bitIndex(%ebp), %eax		#przenieś indeks bitu do rejestru
+rootLoop:
+	movl bit(%ebp), %ebx
+	addl %ebx, (%edx,%eax,4)		#dodaj bit do wyniku
+	
+	
+	
+	shrl $2, bit(%ebp)			#przesunięcie bitu o dwa w prawo
+	cmpl $0, bit(%ebp)			#jeżeli bit różny od zera to wróć do pętli
+	jne rootLoop
+	incl bitIndex(%ebp)			#jeżeli bit równy 0 do zwiększ indeks
+	movl $0x40000000, bit(%ebp)		#ustaw bit na przedostatni
+	movl bitIndex(%ebp), %eax		#przenieś indeks bitu do rejestru
+	cmpl %eax, dataLength			#jeżeli dataLength>bitIndex to wróć
+	ja rootLoop
+skipRootLoop:
+	#======================
+
+
+
+
+
+	#zwalnianie pamięci zabranej przez kopię liczby pierwiastkowanej
+	movl dataLength, %eax
+	shll $2, %eax			#długość w bajtach
+	negl %eax			#negacja długości w bajtach
+	pushl %eax			#argumnet funkcji
+	call allocate			#funkcja alokacji
+	addl $4, %esp			#zdjęcie argumentu
+	#===============================================================
+
+	
+	movl %ebp, %esp			#odtworzenie starego stosu
+	popl %ebp
+	ret

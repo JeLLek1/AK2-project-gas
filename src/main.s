@@ -9,15 +9,19 @@
 #
 .section .data
 	.equ SYS_EXIT, 1
-dataStartWsk: .long 0
+dataStartPtr: .long 0
 dataLength: .long 0
+rootStartPtr: .long 0
 
 .section .text
 
-.global _start, dataStartWsk, dataLength
+.global _start, dataStartPtr, dataLength, rootStartPtr, rootLength
 _start:
 
-	call termLoad
+	call termLoad			#wczytanie danych
+
+	call root			#obliczenie pierwiastka do późniejszych obliczeń
+
 	movl $SYS_EXIT, %eax		#kod komendy systemowej wyjscia
 	xorl %ebx, %ebx			#zwraca status 0
 	int $0x80			#wywolanie komendy systemowej
