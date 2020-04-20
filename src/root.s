@@ -12,12 +12,12 @@
 # numberTempPtr - wskaźnik początku kopii liczby pierwiastkowanej
 # bit - zawsze 1 bit na danej pozycji 32 bitowej
 # bitIndex - indeks segmentu danych
+# ifCarry - podczas przesunięcia w prawo przechowywane czy ma zostać dodany ostatni bit
 
 .section .data
 	.equ numberTempPtr, -4
 	.equ bit, -8
 	.equ bitIndex, -12
-
 .section .text
 
 .global root
@@ -26,7 +26,7 @@
 root:
 	pushl %ebp
 	movl %esp, %ebp			#prolog funkcji (jakby trzeba bylo korzystac z argumentow
-	subl $12, %esp			#miejsce na zmienne lokalne
+	subl $16, %esp			#miejsce na zmienne lokalne
 
 	#alokacja pamięci dla wyniku
 	movl dataLength, %eax
@@ -85,7 +85,58 @@ rootLoop:
 	movl bit(%ebp), %ebx
 	addl %ebx, (%edx,%eax,4)		#dodaj bit do wyniku
 	
-	
+	#czy temp jest większe lub równe wynikowi
+	movl $0, %esi
+rootIfLower:
+	movl (%ecx, %esi, 4), %eax		#przenieś segment danych temp o indeksie tem do rejestru
+	cmpl (%edx, %esi, 4), %eax		#porównaj temp do wyniku
+	ja tempGreater				#jezeli wieksze
+	jl tempLower 				#jezeli mniejsze
+	#jezeli rowne to sprawdzaj dalej. jezeli do konca rowne to zrob to samo co w tempGreater
+	cmpl dataLength, %esi			#dopóki indeks mniejszy niż długość danych
+tempGreater:
+	#1
+	#odejmowanie temp = temp - (wynik+bit)
+	clc					#cztszczenie flagi
+	pushf					#dodanie flagi na stos
+	movl dataLength, %esi			#przenieś długość danych do rejestru
+subtractTemp:
+	decl %esi				#zmniejszenie indeksu
+	movl (%edx, %esi, 4), %eax		#przeniesienie części wyniku do rejestru
+	popf
+	sbbl %eax, (%ecx, %esi, 4)		#odjęcie od części temp część wyniku
+	pushf
+	cmpl $0, %esi
+	jge subtractTemp			#dopuki indeks większy lub równy 0 to odejmuj
+	popf					#ściągnij flagę ze stosu (żeby nie leżała tam a i tak się nie przyda - warunek rootIfLower spełniony to liczba i tak nie będzie ujemna)
+
+	movl bitIndex(%ebp), %eax		#przenieś indeks bitu do rejestru
+	movl bit(%ebp), %ebx			#przeniesienie bitu do rejestru
+	subl %ebx, (%edx,%eax,4)		#odjęcie bitu od wyniku
+
+	pushl numberTempPtr			#pierwszy argument funkcji
+	pushl dataLength			#drugi argument funkcji
+	lcall shiftOne				#przesunięcie liczby w prawo o 1
+	addl $8, %esp				#usunięcie ze stosu argumentów funkcji
+
+	movl bitIndex(%ebp), %eax		#przenieś indeks bitu do rejestru
+	movl bit(%ebp), %ebx			#przeniesienie bitu do rejestru
+	addl %ebx, (%edx,%eax,4)		#dodanie bitu od wyniku
+
+	jmp tempSkipLower
+tempLower:
+	#2
+	movl bitIndex(%ebp), %eax		#przenieś indeks bitu do rejestru
+	movl bit(%ebp), %ebx			#przeniesienie bitu do rejestru
+	subl %ebx, (%edx,%eax,4)		#odjęcie bitu od wyniku
+
+	pushl numberTempPtr			#pierwszy argument funkcji
+	pushl dataLength			#drugi argument funkcji
+	lcall shiftOne				#przesunięcie liczby w prawo o 1
+	addl $8, %esp				#usunięcie ze stosu argumentów funkcji
+
+tempSkipLower:
+	jl rootIfLower			
 	
 	shrl $2, bit(%ebp)			#przesunięcie bitu o dwa w prawo
 	cmpl $0, bit(%ebp)			#jeżeli bit różny od zera to wróć do pętli
