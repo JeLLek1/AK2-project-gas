@@ -8,8 +8,8 @@
 # ifCf - czy należy dodać ostatnią pozycje
 
 .section .data
-	.equ numberPtr, 8
-	.equ numberLength, 12
+	.equ numberPtr, 12
+	.equ numberLength, 8
 	.equ ifCf, -4
 
 .section .text
@@ -24,15 +24,14 @@ shiftOne:
 
 	movl $0, ifCf(%ebp)			#nadanie wartości początkowej
 	movl numberPtr(%ebp), %eax		#przeniesienie wskaźnika do rejestru
-	movl numberLength(%ebp), %esi		#indeks
+	movl $0, %esi				#indeks
 	clc					#wyczyszczenie flag
 shiftLoop:
-	decl %esi				#zmniejszenie dlugosci do sprawdzenia
 
 	shrl (%eax, %esi, 4)			#przesunięcie bitowe w prawo
 	pushf					#przechowanie flag
 	cmpl $0, ifCf(%ebp)			#czy nalezy dodac ostatni bit
-	jne skipAddLast
+	je skipAddLast
 	addl $0x80000000, (%eax, %esi, 4)	#dodanie ostatniego bitu
 skipAddLast:
 	popf					#przywrócenie flag
@@ -41,9 +40,10 @@ skipAddLast:
 	jc skipUnsetCf				#Czy jest przeniesienie
 	movl $0, ifCf(%ebp)
 skipUnsetCf:
-
-	cmpl $0, %esi
-	jge shiftLoop				#wykonuj dopoki większy lub równy indeks
+	
+	incl %esi				#zwiekszenie dlugosci do sprawdzenia
+	cmpl numberLength(%ebp), %esi
+	jl shiftLoop				#wykonuj dopoki mniejszy indeks od długości
 
 	movl %ebp, %esp				#odtworzenie starego stosu
 	popl %ebp

@@ -82,6 +82,7 @@ skipSearchHiPow4:
 	movl numberTempPtr(%ebp), %ecx		#przeniesienie atresu początku temp do rejestru
 	movl bitIndex(%ebp), %eax		#przenieś indeks bitu do rejestru
 rootLoop:
+	movl bitIndex(%ebp), %eax		#przenieś indeks bitu do rejestru
 	movl bit(%ebp), %ebx
 	addl %ebx, (%edx,%eax,4)		#dodaj bit do wyniku
 	
@@ -91,9 +92,11 @@ rootIfLower:
 	movl (%ecx, %esi, 4), %eax		#przenieś segment danych temp o indeksie tem do rejestru
 	cmpl (%edx, %esi, 4), %eax		#porównaj temp do wyniku
 	ja tempGreater				#jezeli wieksze
-	jl tempLower 				#jezeli mniejsze
+	jb tempLower 				#jezeli mniejsze
+	incl %esi				#inkrementacja indeksu
 	#jezeli rowne to sprawdzaj dalej. jezeli do konca rowne to zrob to samo co w tempGreater
 	cmpl dataLength, %esi			#dopóki indeks mniejszy niż długość danych
+	jl rootIfLower
 tempGreater:
 	#1
 	#odejmowanie temp = temp - (wynik+bit)
@@ -107,16 +110,16 @@ subtractTemp:
 	sbbl %eax, (%ecx, %esi, 4)		#odjęcie od części temp część wyniku
 	pushf
 	cmpl $0, %esi
-	jge subtractTemp			#dopuki indeks większy lub równy 0 to odejmuj
+	jg subtractTemp				#dopuki indeks większy od 0 to odejmuj
 	popf					#ściągnij flagę ze stosu (żeby nie leżała tam a i tak się nie przyda - warunek rootIfLower spełniony to liczba i tak nie będzie ujemna)
 
 	movl bitIndex(%ebp), %eax		#przenieś indeks bitu do rejestru
 	movl bit(%ebp), %ebx			#przeniesienie bitu do rejestru
 	subl %ebx, (%edx,%eax,4)		#odjęcie bitu od wyniku
 
-	pushl numberTempPtr			#pierwszy argument funkcji
+	pushl rootStartPtr			#pierwszy argument funkcji
 	pushl dataLength			#drugi argument funkcji
-	lcall shiftOne				#przesunięcie liczby w prawo o 1
+	call shiftOne				#przesunięcie liczby w prawo o 1
 	addl $8, %esp				#usunięcie ze stosu argumentów funkcji
 
 	movl bitIndex(%ebp), %eax		#przenieś indeks bitu do rejestru
@@ -130,15 +133,15 @@ tempLower:
 	movl bit(%ebp), %ebx			#przeniesienie bitu do rejestru
 	subl %ebx, (%edx,%eax,4)		#odjęcie bitu od wyniku
 
-	pushl numberTempPtr			#pierwszy argument funkcji
+	pushl rootStartPtr			#pierwszy argument funkcji
 	pushl dataLength			#drugi argument funkcji
-	lcall shiftOne				#przesunięcie liczby w prawo o 1
+	call shiftOne				#przesunięcie liczby w prawo o 1
 	addl $8, %esp				#usunięcie ze stosu argumentów funkcji
 
-tempSkipLower:
-	jl rootIfLower			
+tempSkipLower:		
 	
 	shrl $2, bit(%ebp)			#przesunięcie bitu o dwa w prawo
+
 	cmpl $0, bit(%ebp)			#jeżeli bit różny od zera to wróć do pętli
 	jne rootLoop
 	incl bitIndex(%ebp)			#jeżeli bit równy 0 do zwiększ indeks
