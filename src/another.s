@@ -14,7 +14,8 @@
 
 .global divide_by_repeated_subtraction
 
-.type divide_by_repeated_subtraction, @function divide_by_repeated_subtraction:
+.type divide_by_repeated_subtraction, @function
+divide_by_repeated_subtraction:
     pushl %ebp
     movl %esp, %ebp
     subl $16, %esp
