@@ -9,7 +9,7 @@ bindiv:
 
     pushl %ebp
     movl %esp, %ebp
-    subl $16, %esp
+    subl $20, %esp
 
 # sprawdzenie pozycji msb 
     movl dataStartPtr, %eax
@@ -68,14 +68,25 @@ shiftposition:
     dec %esi
     jmp shiftposition
 aftershift:
-    
+
+# zaalokowanie pomocniczej zmiennej dla reszty
+    movl 28(%ebp), %eax
+    shll $2, %eax
+    pushl %eax
+    call allocate
+    addl $4, %esp
+    movl %eax, -16(%ebp)
+
+
     movl 28(%ebp), %edi
     dec %edi
-    movl 24(%ebp), %ecx
-    movl (%ecx,%edi,4), %eax           # najnizszy doubleword w reszcie
+    movl %edi, -20(%ebp)
+#    movl 24(%ebp), %eax
+#    movl (%eax,%edi,4), %eax           # najnizszy doubleword w reszcie
+#    movl %eax, -20(%ebp)
     movl dataStartPtr, %ebx
     movl (%ebx), %ecx           # najwyższy doubleword w dzielnej
-    
+
     movl dataLength, %edi
     dec %edi
     shll $5, %edi
@@ -84,7 +95,10 @@ aftershift:
 petla:
     cmpl $0, %edi
     jl dalej
-    shl $1, %eax                # przesuniecie reszty o 1 w lewo
+    pushl 28(%ebp)
+    pushl 24(%ebp)
+    call shiftOneLeft
+    #shl $1, %eax                # przesuniecie reszty o 1 w lewo
     and -12(%ebp), %ecx
     
     movl -8(%ebp), %esi
@@ -95,31 +109,90 @@ revshiftposition:
     dec %esi
     jmp revshiftposition    
 afterrevshift:
+    pushl %ebx
+    movl -20(%ebp), %esi            # ustawienie pozycji na ostatnią (dlugosc-1)
+ #   movl %edi, -20(%ebp)
+ #   movl 28(%ebp), %edi
+ #   dec %edi
+    movl 24(%ebp), %ebx             # pobranie adresu reszty
+    movl (%ebx,%esi,4), %eax        # pobranie najmniej znaczacej czesci reszty
+ #   movl -20(%ebp), %edi 
+    orl %ecx, %eax                  # dopisanie z prawej strony wybranego bitu z dzielnej
+    movl %eax, (%ebx,%esi,4)       # zapisanie najmniej znaczacej czesci do reszty
 
-    orl %ecx, %eax
+    pushl %edi
+copyit:                             # skopiowanie reszty do pomocniczej zmiennej
+    movl (%ebx,%esi,4), %eax
+    movl -16(%ebp), %edi
+    movl %eax, (%edi,%esi,4)
+    dec %esi
+    cmpl $0, %esi
+    jge copyit
 
-    movl 8(%ebp), %edx
-    movl (%edx), %edx
-    cmpl %edx, %eax
-    jl pomin 
-    subl %edx, %eax
+    movl -20(%ebp), %esi            # ustawienie pozycji na ostatnią (dlugosc-1)
+    movl 8(%ebp), %edx              # pobranie adresu dzielnika
+    clc
+    pushf
+subTemp:
+    movl (%edx,%esi,4), %ecx        # pobranie czesci dzielnika od prawej strony
+    movl (%edi,%esi,4), %eax        # pobranie czesci reszty od prawej strony 
+    popf
+    sbbl %ecx, %eax
+    pushf 
+    movl %eax, (%edi,%esi,4)
+    dec %esi
+    cmp $0, %esi
+    jge subTemp
+    popf
+
+    movl $0, %esi
+check_result:
+    cmpl -20(%ebp), %esi
+    jg after_check 
+    movl (%edi,%esi,4), %eax
+    inc %esi
+    cmpl $0, %eax
+    jl waitf
+    je check_result
+
+after_check:
+
+    movl $0, %esi
+copy2it:                             # skopiowanie pomocniczej zmiennej do reszty
+    movl (%edi,%esi,4), %eax
+    movl %eax, (%ebx,%esi,4)
+    inc %esi
+    cmpl -20(%ebp), %esi
+    jle copy2it
+
+waitf:
+    popl %edi
+    popl %ebx
+
+    
+#    cmpl %edx, %eax
+#    jl pomin 
+#    subl %edx, %eax
 pomin:
-    movl %eax, -16(%ebp) # zapisanie reszty (najnizszego doubleword) w zmiennej lokalnej
+ #   movl 24(%ebp), %ebx
+ #   movl -20(%ebp), %esi
+ #   movl %eax, (%ebx,%esi,4) # zapisanie reszty (najnizszego doubleword) w zmiennej lokalnej
+ #   popl %ebx
     pushl dataLength
     pushl %ebx
     call shiftOneLeft
     addl $8, %esp
     movl (%ebx), %ecx
-    movl -16(%ebp), %eax
+ #   movl -16(%ebp), %eax
     dec %edi
     jmp petla
  #   cmpl $32, -8(%ebp) 
  #   jge dalej
 
 dalej:
-    movl -16(%ebp), %eax
+   # movl -16(%ebp), %eax
 
-function_exit:
+bindiv_exit:
     movl %ebp, %esp			#odtworzenie starego stosu
 	popl %ebp
     ret

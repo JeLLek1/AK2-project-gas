@@ -25,14 +25,14 @@ _start:
 
 	call root			#obliczenie pierwiastka do późniejszych obliczeń
 
-	movl $1, %eax
+	movl $2, %eax
 	shll $2, %eax				#długość w bajtach
 	pushl %eax				#argumnet funkcji
 	call allocate				#funkcja alokacji
 	addl $4, %esp				#zdjęcie argumentu
 	movl %eax, dzielnikStartPtr		#wynik funkcji
 
-	movl $1, %eax
+	movl $2, %eax
 	shll $2, %eax				#długość w bajtach
 	pushl %eax				#argumnet funkcji
 	call allocate				#funkcja alokacji
@@ -48,14 +48,14 @@ _start:
 
 	#movl dzielnikStartPtr, %eax
 	movl dzielnikStartPtr, %eax
-	movl $2, (%eax)
+	movl $0x1, (%eax)
+	movl $0x0, 4(%eax)
 
-
-	pushl $1
+	pushl $2
 	pushl resztaStartPtr
 	pushl $2
 	pushl ilorazStartPtr
-	pushl $1
+	pushl $2
 	pushl dzielnikStartPtr
 	call bindiv
 	addl $24, %esp
