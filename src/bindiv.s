@@ -1,5 +1,7 @@
 # argumenty: dzielnik, dlugosc, zmienna dla ilorazu, dlugosc, zmienna dla reszty, dlugosc
-# na wyjscie w eax jest zapisana reszta z dzielenia 
+# dzielna brana jest ze zmiennej globalnej, a potem kopiowana do lokalnej zmiennej
+# na wyjscie w eax jest zapisane 0 - reszta równa 0 lub 1 - reszta nie równa 0
+# argument trzeci i czwarty (iloraz) trzeba podać, ale nie są na razie do niczego używane 
 .section .data
 .section .text
 .global bindiv
@@ -9,7 +11,11 @@ bindiv:
 
     pushl %ebp
     movl %esp, %ebp
-    subl $20, %esp
+    subl $24, %esp
+
+    pushl %edi              # save local register
+    pushl %esi              # save local register
+    pushl %ebx              # save local register 
 
 # sprawdzenie pozycji msb 
     movl dataStartPtr, %eax
@@ -77,6 +83,28 @@ aftershift:
     addl $4, %esp
     movl %eax, -16(%ebp)
 
+# skopiowanie dataStartPtr do lokalnej zmiennej
+    movl dataLength, %eax
+    shll $2, %eax
+    pushl %eax
+    call allocate
+    addl $4, %esp
+    movl %eax, -24(%ebp)
+    
+    movl dataStartPtr, %eax
+    movl -24(%ebp), %ebx
+    movl dataLength, %edi
+    
+copy_start:
+    dec %edi
+    cmpl $0, %edi
+    jl after_copy
+    movl (%eax,%edi,4), %ecx
+    movl %ecx, (%ebx,%edi,4)
+    jmp copy_start
+
+after_copy:   
+
 
     movl 28(%ebp), %edi
     dec %edi
@@ -84,7 +112,7 @@ aftershift:
 #    movl 24(%ebp), %eax
 #    movl (%eax,%edi,4), %eax           # najnizszy doubleword w reszcie
 #    movl %eax, -20(%ebp)
-    movl dataStartPtr, %ebx
+    movl -24(%ebp), %ebx
     movl (%ebx), %ecx           # najwyższy doubleword w dzielnej
 
     movl dataLength, %edi
@@ -190,9 +218,22 @@ pomin:
  #   jge dalej
 
 dalej:
-   # movl -16(%ebp), %eax
+   movl -20(%ebp), %edi
+   movl 24(%ebp), %ebx
+   movl (%ebx,%edi,4), %ecx
+   cmpl $0, %ecx
+   je equalzero
+   movl $1, %eax
+   jmp bindiv_exit
+
+equalzero:
+    movl $0, %eax
 
 bindiv_exit:
+    popl %ebx
+    popl %esi
+    popl %edi
+    
     movl %ebp, %esp			#odtworzenie starego stosu
 	popl %ebp
     ret
