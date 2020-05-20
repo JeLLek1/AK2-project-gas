@@ -39,7 +39,6 @@
 	.equ SYS_WRITE, 4
 	.equ STD_IN, 0
 	.equ STD_OUT, 1
-	.equ SYS_BRK, 45
 	.equ segment, -4
 	.equ shift, -8
 
