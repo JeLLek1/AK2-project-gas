@@ -22,6 +22,8 @@ _start:
 
 	call root			#obliczenie pierwiastka do późniejszych obliczeń
 
+	call naiveAproach		#naiwne podejście wyznaczania reszty
+
 	movl $SYS_EXIT, %eax		#kod komendy systemowej wyjscia
 	xorl %ebx, %ebx			#zwraca status 0
 	int $0x80			#wywolanie komendy systemowej

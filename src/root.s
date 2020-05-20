@@ -96,7 +96,7 @@ rootIfLower:
 	incl %esi				#inkrementacja indeksu
 	#jezeli rowne to sprawdzaj dalej. jezeli do konca rowne to zrob to samo co w tempGreater
 	cmpl dataLength, %esi			#dopóki indeks mniejszy niż długość danych
-	jl rootIfLower
+	jb rootIfLower
 tempGreater:
 	#1
 	#odejmowanie temp = temp - (wynik+bit)
