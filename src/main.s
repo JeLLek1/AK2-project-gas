@@ -30,7 +30,7 @@ _start:
 
 	call naiveAproach		#naiwne podejście
 
-	#call millerRabin 		#test Millera-Rabina
+	call millerRabin 		#test Millera-Rabina
 
 	movl $SYS_EXIT, %eax		#kod komendy systemowej wyjscia
 	xorl %ebx, %ebx			#zwraca status 0

@@ -103,6 +103,7 @@ testNaiveAproach:
 	
 	#tutaj będzie dzielonko
 	#incTempPtr(%ebp) - wskaźnik na początek liczby przez którą trzeba dzielić
+	#restTempPtr(%ebp) - pamięć na resztę z dzielenia zarezerwowana już (też długości dataLength)
 	#dataStartPtr - wskaźnik na liczbę którą trzeba podzielić
 	#dataLength - długość liczby
 	#(dzielnik i dzielna zawsze są tej samej długości, 
