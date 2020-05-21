@@ -7,27 +7,23 @@
 #Zmienne lokalne:
 # restTempPtr - wskaźnik na początek pamięci reszty z dzielenia
 # incTempPtr - wskaźnik na początek pamięci liczby inkrementowanej
+# showProgress - postęp obliczeń
 #
 #stałe tekstowe:
 # msg_info - informacja o typie algorytmu
 # msg_no_prime - informacja wyswietlana, jezeli liczba nie jest pierwsza
 # msg_prime - informacja wyswietlana, jezeli liczba jest pierwsza
-# showProgress - postęp obliczeń
 #
 #stałe:
 # MSG_INFO_L - długość tekstu informacji
 # MSG_NO_PRIME_L - długość tekstu, jeżeli liczba nie jest pierwsza
 # MSG_PRIME_L - długość tekstu, jeżeli liczba jest pierwsza
-# SYS_READ - kod wywoławnia systemowego czytania z pliku
 # SYS_WRITE - kod wywołania systemowego zapisu do pliku
-# STD_IN - kod wejscie terminala podczas odczytu
 # STD_OUT - kod wyjścia terminala podczas zapisu
 #
 #
 .section .data
-	.equ SYS_READ, 3
 	.equ SYS_WRITE, 4
-	.equ STD_IN, 0
 	.equ STD_OUT, 1
 	.equ restTempPtr, -4
 	.equ incTempPtr, -8

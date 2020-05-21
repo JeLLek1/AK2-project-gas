@@ -44,7 +44,7 @@ skipAdd:
 	#wyświetlenie cyfry
 	movl $SYS_WRITE, %eax
 	movl $STD_OUT, %ebx
-	lea signPtr(%ebp), %ecx		#adres znaku do wyświetlenia
+	leal signPtr(%ebp), %ecx		#adres znaku do wyświetlenia
 	movl $1, %edx			#jeden znak
 	int $0x80
 	#=================

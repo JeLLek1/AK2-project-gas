@@ -13,11 +13,15 @@
 #
 #stałe tekstowe:
 # msg_load - informacja wyświetlania podczas ładowania wartości
+# msg_load_count - informacja wyświetlana podczas ładowania ilości testów
+# msg_not0 - informacja jeżeli wprowadzono ilość testów równą 0
 # msg_empty - informacja wyswietlana, gdy nie podano żadnego znaku
 # msg_wrong - informacja wyswietlana, gdy zostal podany nieprawidlowy znak
 #
 #stałe:
 # MSG_LOAD_L - dlugosc stalej tekstowej msg_load
+# MSG_LOAD_COUNT_L - długość stałej tekstowej msg_load_count
+# MSG_NOT0_L - długość stałęj tesktowej msg_not0
 # MSG_EMPTY_L - dlugosc stalej tekstowej msg_empty
 # MSG_WRONG_L - dlugosc stalej tekstowej msg_wrong
 # SYS_EXIT - kod wyjscia z programu
@@ -27,8 +31,10 @@
 # STD_OUT - kod wyjścia terminala podczas zapisu
 #
 #procedury:
+# checkCharacter - sprawdza czy wprowadzony znak do %eax jest poprawny i zamienia go na liczbę 
 # error_empty - wywolywana, gdy został podany pusty ciąg znaków
 # error_wrong - wywoływana, gdy został podany nieprawidłowy znak
+# error_0loaded - wywoływana, gdy ilość testów Millera-Rabina równa 0
 # termLoad - ładowanie danych z terminala do dynamicznie przydzielonej pamięci
 #	-dataStartPtr - wskaźnik na początek przydzielonej pamięci
 #	-dataLength - ługość zarezerwowanej pamięci dataLength*4
@@ -49,6 +55,9 @@ character:
 msg_load:
 	.ascii "Podaj liczbe szesnastkowo (0-9, A-F), ktorej pierwszenstwo chcesz sprawdzic: "
 	.equ MSG_LOAD_L, . - msg_load
+msg_load_count:
+	.ascii "Podaj liczbe szesnastkowo (0-9, A-F), ilości testów <0;FFFFFFFF> (reszta znaków zostanie obcięta): "
+	.equ MSG_LOAD_COUNT_L, . - msg_load_count
 msg_empty:
 	.ascii "Nie podano zadnej wartosci. Konczenie programu\n"
 	.equ MSG_EMPTY_L, . - msg_empty
@@ -56,6 +65,9 @@ msg_empty:
 msg_wrong:
 	.ascii "Podano niepoprawny znak. Dozwolone znaki (0-9, A-F). Konczenie programu\n"
 	.equ MSG_WRONG_L, . - msg_wrong
+msg_not0:
+	.ascii "Ilość testów Millera-Rabina nie może być równa 0\n"
+	.equ MSG_NOT0_L, . - msg_not0
 
 .global termLoad
 
@@ -93,29 +105,9 @@ termLoad:
 loadSign:
 
 	#sprawdzanie czy znaki są poprawne i zamiana ich na wartość danego znaku
-	cmpl $48, %eax
-	jge checkIfHex			#jeżeli większe lub równe 48 to musi być znak hex
 	cmpl $10, %eax
 	je loadEnd			#jeżeli równe 10 to znaczy że koniec linii
-	jmp error_wrong			#jeżeli równe to zostaje już tylko zły znak
-checkIfHex:
-	cmpl $57, %eax
-	jg checkIfAf			#jeżeli większe od 57 to znaczy że nie jest cyfrą
-	subl $48, %eax			#jeżeli cyfra to jej wartość jest równa eax-47
-	jmp endChecking			#jeżeli cyfra to już operacje zostały wykonane
-checkIfAf:
-	cmpl $65, %eax
-	jge checkIfAfDown		#jeżeli większe lub równe 65 to sprawdź jeszcze w dół
-	jmp error_wrong
-checkIfAfDown:
-	cmpl $70, %eax
-	jle isAfSign			#jeżeli mniejsze lub równe 70 to jest znakiem A-F
-	jmp error_wrong			#w przeciwnym wypadku jest złym znakiem
-isAfSign:
-	subl $55, %eax			#odejmuje wartość 55, aby przykładowo A(65) miało wartość 10
-	#========================================================================
-
-endChecking:
+	call checkCharacter
 	
 	#dodawanie kolejnych wartości do segment(%ebp) i jeśli się wypełni dodawanie go do stosu
 	movb shift(%ebp), %cl
@@ -200,11 +192,100 @@ skipMovData:
 	addl %eax, (%edx,%esi,4)		#dodanie wartości ostatniego elementu
 	#======================================
 
-	movl %ebp, %esp				#odtworzenie starego stosu
+	#wypisanie w terminalu informacji msg_load_count
+	movl $SYS_WRITE, %eax
+	movl $STD_OUT, %ebx
+	movl $msg_load_count, %ecx
+	movl $MSG_LOAD_COUNT_L, %edx
+	int $0x80
+	#=========================================
+	#Wczytanie pierwszego znaku
+	movl $SYS_READ, %eax
+	movl $STD_IN, %ebx
+	movl $character, %ecx
+	movl $CHARACTER_L, %edx
+	int $0x80
+	#==========================
+	xor %eax, %eax			#upewnienie, że na pewno w rejestrze eax jest tylko nowy znak
+	movb character, %al		#przeniesienie znaku do rejestru al
+	cmpb $10, %al			#jezeli pierwszy znak jest znakiem nowej linii to błąd
+	je error_empty
+
+	xor %esi, %esi			#liczba przetworzonych cyfr
+	movb $28, shift(%ebp)		#wstaw 28 do (przesunięcia) shift(%ebp)
+loadSignMil:
+
+	#sprawdzanie czy znaki są poprawne i zamiana ich na wartość danego znaku
+	cmpl $10, %eax
+	je loadEndMil			#jeżeli znak końca linii to zakończ
+	call checkCharacter
+	incl %esi			#inkrementacja iloścli bitów
+	movb shift(%ebp), %cl
+	shll %cl, %eax			#przesunięcie o daną ilość bitów
+	addl %eax, millerTestCount	#dodanie nowej wartości do millerTestCount
+	cmpb $0, shift(%ebp)		#jeżli różne od 0 to czyść buffor
+	je clearBuffor
+	subb $4, shift(%ebp)		#odejmij 4 od shift(%ebp) (zawsze jest to wykonywane dlatego w shift(%ebp) dane jest 32 żeby wróciło do 28)
+	#=================================================================================-
+
+	#Wczytywanie kolejnych znaków
+	movl $SYS_READ, %eax
+	movl $STD_IN, %ebx
+	movl $character, %ecx
+	movl $CHARACTER_L, %edx
+	int $0x80
+	#============================
+	
+	xorl %eax, %eax			#upewnienie, że na pewno w rejestrze eax jest tylko nowy znak
+	movb character, %al		#przeniesienie znaku do rejestru al
+	jmp loadSignMil
+	#czyszczenie buffora
+clearBuffor:
+	#Wczytywanie kolejnych znaków
+	movl $SYS_READ, %eax
+	movl $STD_IN, %ebx
+	movl $character, %ecx
+	movl $CHARACTER_L, %edx
+	int $0x80
+	#============================
+	cmpb $10, character
+	jne clearBuffor			#wczytuj dopóki brak końca linii
+loadEndMil:
+	movl $8, %ecx
+	subl %esi, %ecx			#o ile trzeba przesunąć w prawo
+	shll $2, %ecx			#raz 4 (liczba szesnastkowa ma 4 bity)
+	shrl %cl, millerTestCount	#przesunięcie w prawo
+
+	cmpl $0, millerTestCount	#gdy ilość testów równa 0 to błąd.
+	je error_0loaded
+
+	movl %ebp, %esp			#odtworzenie starego stosu
 	popl %ebp
 	ret
 
 
+checkCharacter:
+	cmpl $48, %eax
+	jge checkIfHex			#jeżeli większe lub równe 48 to musi być znak hex
+	jmp error_wrong			#jeżeli równe to zostaje już tylko zły znak
+checkIfHex:
+	cmpl $57, %eax
+	jg checkIfAf			#jeżeli większe od 57 to znaczy że nie jest cyfrą
+	subl $48, %eax			#jeżeli cyfra to jej wartość jest równa eax-47
+	jmp endChecking			#jeżeli cyfra to już operacje zostały wykonane
+checkIfAf:
+	cmpl $65, %eax
+	jge checkIfAfDown		#jeżeli większe lub równe 65 to sprawdź jeszcze w dół
+	jmp error_wrong
+checkIfAfDown:
+	cmpl $70, %eax
+	jle isAfSign			#jeżeli mniejsze lub równe 70 to jest znakiem A-F
+	jmp error_wrong			#w przeciwnym wypadku jest złym znakiem
+isAfSign:
+	subl $55, %eax			#odejmuje wartość 55, aby przykładowo A(65) miało wartość 10
+endChecking:
+	
+	ret
 
 error_empty:
 	#wypisanie wiadomosci na ekranie
@@ -212,6 +293,22 @@ error_empty:
 	movl $STD_OUT, %ebx
 	movl $msg_empty, %ecx
 	movl $MSG_EMPTY_L, %edx
+	int $0x80
+	#===============================
+
+	#wyjscie z programu
+	movl $SYS_EXIT, %eax
+	xorl %ebx, %ebx		#zamiast wstawiania 0 (jakies zabezpieczenie przed wstrzykiwaniem terminala)
+	int $0x80
+	#==================
+	ret
+
+error_0loaded:
+	#wypisanie wiadomosci na ekranie
+	movl $SYS_WRITE, %eax
+	movl $STD_OUT, %ebx
+	movl $msg_not0, %ecx
+	movl $MSG_NOT0_L, %edx
 	int $0x80
 	#===============================
 
