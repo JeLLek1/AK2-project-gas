@@ -106,7 +106,18 @@ skipFillZero:
 testNaiveAproach:
 	
 	#tutaj będzie dzielonko
-
+	#incTempPtr(%ebp) - wskaźnik na początek liczby przez którą trzeba dzielić
+	#dataStartPtr - wskaźnik na liczbę którą trzeba podzielić
+	#dataLength - długość liczby
+	#(dzielnik i dzielna zawsze są tej samej długości, 
+	#nigdzie tego nie zmieniam. Nawet jak inc jest równe 3 
+	#to dalej jest przechowywane w tylu komórkach co testowana liczba, 
+	#więc nie musisz tego robić jako argument, dataLenght może być wszędzie na stałe)
+	#argumenty funkcji
+	#call bindiv - tu twoja funkcja
+	#cmpl $0, %eax
+	#je isNoPrim - jak będzie %eax równe 0 to znaczy że nie jest pierwsza - koniec zadania
+	
 	#wyświetlenie postępu
 	cmpl $2, dataLength
 	jb skipShowProgress			#jeżeli długość jest mniejsza niż 2 nie ma sensu pokazywać postępu
