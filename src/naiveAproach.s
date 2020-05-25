@@ -111,9 +111,14 @@ testNaiveAproach:
 	#to dalej jest przechowywane w tylu komórkach co testowana liczba, 
 	#więc nie musisz tego robić jako argument, dataLenght może być wszędzie na stałe)
 	#argumenty funkcji
-	#call bindiv - tu twoja funkcja
-	#cmpl $0, %eax
-	#je isNoPrim - jak będzie %eax równe 0 to znaczy że nie jest pierwsza - koniec zadania
+	pushl dataLength
+	pushl restTempPtr(%ebp)
+	pushl dataLength
+	pushl incTempPtr(%ebp)
+	call bindiv # - tu twoja funkcja
+	addl $16, %esp
+	cmpl $0, %eax
+	je isNoPrim # - jak będzie %eax równe 0 to znaczy że nie jest pierwsza - koniec zadania
 	
 	#wyświetlenie postępu
 	cmpl $2, dataLength
