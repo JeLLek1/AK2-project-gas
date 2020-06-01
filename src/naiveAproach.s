@@ -21,7 +21,7 @@
 # SYS_WRITE - kod wywołania systemowego zapisu do pliku
 # STD_OUT - kod wyjścia terminala podczas zapisu
 #
-#
+#0x0804a024
 .section .data
 	.equ SYS_WRITE, 4
 	.equ STD_OUT, 1
@@ -73,6 +73,14 @@ naiveAproach:
 	movl %eax, incTempPtr(%ebp)		#wynik funkcji
 	#==========================================
 
+	#test, czy poniżej 3 (bo pętla idzie od 3 w górę)
+	cmpl $1, dataLength
+	ja skipCheckIfLow			#jeżeli długość większa od 1 to na pewno większa od 3
+	movl dataStartPtr, %eax
+	cmpl $3, (%eax)
+	jbe skipTestIfLower 			#jeżeli mniejsza lub równa 3 to jest pierwsza
+skipCheckIfLow:
+
 	#sprawdzenie podzielności przez 2
 	movl dataStartPtr, %eax			#wskaźnik początku liczby sprawdzanej do rejestru
 	movl dataLength, %esi			#długość liczby do rejestru
@@ -97,6 +105,8 @@ skipFillZero:
 	#pokazywanie postępu
 	movl $0, showProgress(%ebp)		#zerowanie testu czy przedostatnia komórka się zmieniła
 
+
+
 	#sprawdzanie czy dane wprowadzone są podzielne przez kolejne liczby z incTempPtr
 	#sprawdzanie co 2 pozycje bo na pewno nie jest podzielna przez 2
 testNaiveAproach:
@@ -109,14 +119,16 @@ testNaiveAproach:
 	#(dzielnik i dzielna zawsze są tej samej długości, 
 	#nigdzie tego nie zmieniam. Nawet jak inc jest równe 3 
 	#to dalej jest przechowywane w tylu komórkach co testowana liczba, 
-	#więc nie musisz tego robić jako argument, dataLenght może być wszędzie na stałe)
+	#więc nie musisz tego robić jako argument, dataLength może być wszędzie na stałe)
 	#argumenty funkcji
-	pushl dataLength
-	pushl restTempPtr(%ebp)
-	pushl dataLength
-	pushl incTempPtr(%ebp)
+	pushl dataLength			#długość licznika
+	pushl dataStartPtr			#licznik
+	pushl dataLength			#długość reszty
+	pushl restTempPtr(%ebp)			#reszta
+	pushl dataLength			#długość mianownika
+	pushl incTempPtr(%ebp)			#mianownik
 	call bindiv # - tu twoja funkcja
-	addl $16, %esp
+	addl $24, %esp
 	cmpl $0, %eax
 	je isNoPrim # - jak będzie %eax równe 0 to znaczy że nie jest pierwsza - koniec zadania
 	

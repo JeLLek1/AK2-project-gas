@@ -7,11 +7,12 @@
     .equ fullmsb, -12
     .equ mask, -16
     .equ tempRemainder, -20
-    .equ numerator, 0
     .equ denominator, 8
     .equ denominatorLength, 12
     .equ remainder, 16
     .equ remainderLength, 20
+    .equ numerator, 24
+    .equ numeratorLength, 28
 .section .text
 .global bindiv
 
@@ -26,7 +27,7 @@ bindiv:
     pushl %ebx              # save local register 
 
 # sprawdzenie pozycji msb 
-    movl dataStartPtr, %eax
+    movl numerator(%ebp), %eax
     movl (%eax), %eax
 
 # %ecx - lsb, -8(%ebp) - msb, %edi - pozycja
@@ -83,7 +84,7 @@ found_mask:
     movl %eax, tempRemainder(%ebp)
 
 # okreslenie liczby petli
-    movl dataLength, %eax
+    movl numeratorLength(%ebp), %eax
     dec %eax
     shl $5, %eax
     addl msb(%ebp), %eax
@@ -101,7 +102,7 @@ divloop:
     call shiftOneLeft
     addl $8, %esp
 
-    movl dataStartPtr, %eax
+    movl numerator(%ebp), %eax
     movl (%eax,%esi,4), %eax
     and mask(%ebp), %eax
 

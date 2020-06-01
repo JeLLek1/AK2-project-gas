@@ -8,6 +8,7 @@
 #Zmienne lokalne:
 # dataTempPtr - kopia sprawdzanej liczby
 # counterShift - liczba przesunięc przy podzieleniu przez 2
+# randomNumber - liczba pseudolosowa
 #
 #stałe tekstowe:
 # msg_info - informacja o typie algorytmu i o prawdopodobieństwie
@@ -26,6 +27,7 @@
 	.equ STD_OUT, 1
 	.equ dataTempPtr, -4
 	.equ counterShift, -8
+	.equ randomNumber, -12
 .section .text
 msg_info:
 	.ascii "\nTest Millera-Rabina:\nPrawdopodobienstwo bledu: 1/4^"
@@ -43,7 +45,7 @@ msg_prime:
 millerRabin:
 	pushl %ebp
 	movl %esp, %ebp			#prolog funkcji (jakby trzeba bylo korzystac z argumentow
-	subl $12, %esp			#miejsce na zmienne lokalne
+	subl $16, %esp			#miejsce na zmienne lokalne
 
 	#wypisanie w terminalu informacji msg_info
 	movl $SYS_WRITE, %eax
@@ -64,6 +66,15 @@ millerRabin:
 	call allocate				#funkcja alokacji
 	addl $4, %esp				#zdjęcie argumentu
 	movl %eax, dataTempPtr(%ebp)		#wynik funkcji
+	#==========================================
+
+	#alokacja pamięci dla liczby losowej
+	movl dataLength, %eax
+	shll $2, %eax				#długość w bajtach
+	pushl %eax				#argumnet funkcji
+	call allocate				#funkcja alokacji
+	addl $4, %esp				#zdjęcie argumentu
+	movl %eax, randomNumber(%ebp)		#wynik funkcji
 	#==========================================
 	
 	#wskaźniki do rejestrów
@@ -113,9 +124,15 @@ shiftIfNo1Skip:
 	#pętla testów Millera Rabina
 testCountLoop:
 	
-	decl millerTestCount
 	cmpl $0, millerTestCount
-	jne testCountLoop
+	je testCountLoopEnd			#jeżeli ilość testów do zrobienia równa 0 to koniec
+
+	#randomNumber = Losuj(2,dataTempPtr-2)
+	#firstMiler = (randomNumber^dataTempPtr) mod dataTempPtr
+
+	decl millerTestCount			#zmniejszenie pozostałych testów
+	jmp testCountLoop
+testCountLoopEnd:
 
 	#wypisanie w terminalu informacji msg_prime
 	movl $SYS_WRITE, %eax
@@ -135,6 +152,15 @@ isNoPrime:
 	int $0x80
 	#=========================================
 isPrimeEnd:
+	
+	#zwalnianie pamięci zabranej przez liczbę pseudolosową
+	movl dataLength, %eax
+	shll $2, %eax			#długość w bajtach
+	negl %eax			#negacja długości w bajtach
+	pushl %eax			#argumnet funkcji
+	call allocate			#funkcja alokacji
+	addl $4, %esp			#zdjęcie argumentu
+	#===============================================================
 
 	#zwalnianie pamięci zabranej przez kopię testowanej liczby
 	movl dataLength, %eax
