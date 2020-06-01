@@ -29,3 +29,4 @@ srand_vec:
 	movl %ebp, %esp			#odtworzenie starego stosu
 	popl %ebp
 	ret
+	
