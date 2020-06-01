@@ -33,7 +33,9 @@ lessrand:
 	movl %eax, restTempPtr(%ebp)		#wynik funkcji
 	#==========================================
 
-	#alokacja pamięci dla liczby ikrementowanej
+# dzielnik - trzeba zamienic na pobieranie dzielnika z argumentu
+# i wtedy usunąć alokację oraz wpisanie wartosci
+	#alokacja pamięci dla dzielnika
 	movl randomLength, %eax
 	shll $2, %eax				#długość w bajtach
 	pushl %eax				#argumnet funkcji
@@ -41,6 +43,10 @@ lessrand:
 	addl $4, %esp				#zdjęcie argumentu
 	movl %eax, denomTempPtr(%ebp)	#wynik funkcji
 	#==========================================
+
+	movl denomTempPtr(%ebp), %eax
+    movl $2000, 4(%eax)
+
 
     #alokacja pamięci dla liczby ikrementowanej
 	movl randomLength, %eax
@@ -51,8 +57,7 @@ lessrand:
 	movl %eax, randomStartPtr(%ebp)	#wynik funkcji
 	#==========================================
 
-    movl denomTempPtr(%ebp), %eax
-    movl $2000, 4(%eax)
+    
 
     call srand_vec
     pushl randomLength
@@ -69,7 +74,7 @@ lessrand:
 	call bindiv # - tu twoja funkcja
 	addl $20, %esp
 aft:	
-    movl restTempPtr(%ebp), %eax
+    movl restTempPtr(%ebp), %eax	# reszta z dzielenia jako wynik
 
 func_exit:
     popl %ebx

@@ -14,11 +14,12 @@
 
 .section .data
 	.equ vector, 8
+	.equ length, 12
 	.equ randA, 1103515245
 	.equ randC, 12345
 .section .text
 
-.global random_vec, seed
+.global random_vec
 
 .type random_vec, @function
 random_vec:
@@ -29,7 +30,7 @@ random_vec:
     pushl %esi              # save local register
     pushl %ebx              # save local register
 
-	movl 12(%ebp), %eax
+	movl length(%ebp), %eax
 	movl %eax, -4(%ebp)
 
 	movl seed, %eax				#pobranie aktualnego seedu
