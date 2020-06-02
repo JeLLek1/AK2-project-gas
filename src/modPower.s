@@ -1,8 +1,8 @@
-#algorytm tyliczania (a^e) mod n
+#algorytm wyliczania (a^e) mod n
 #
 #argumenty funkcji
 # a - argument a (podstawa potęgi)
-# e - argument b (wykładnik potęgi)
+# e - argument e (wykładnik potęgi)
 # n - argument n (mianownik modulo)
 # result - wskaźnik na wynik
 #
@@ -28,6 +28,9 @@ modPower:
 	push %ebp
 	mov %esp, %ebp			#nowa ramka call
 	subl $16, %esp			#miejsce na zmienne lokalne
+
+	pushl %esi              	# zapisanie rejestrów lokalnych
+	pushl %ebx              	# zapisanie rejestrów lokalnych
 
 	#alokacja pamięci dla maski
 	movl dataLength, %eax
@@ -198,6 +201,9 @@ modPowerLoopSkip:
 	call allocate			#funkcja alokacji
 	addl $4, %esp			#zdjęcie argumentu
 	#===============================================================
+
+	popl %ebx
+   	popl %esi
 
 	movl %ebp, %esp
 	popl %ebp			#Przwywrócenie starej ramki call

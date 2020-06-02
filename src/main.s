@@ -15,9 +15,6 @@ dataStartPtr: .long 0
 dataLength: .long 0
 rootStartPtr: .long 0
 millerTestCount: .long 0
-dzielnikStartPtr: .long 0
-ilorazStartPtr: .long 0x0, 0x0
-resztaStartPtr: .long 0
 
 .section .text
 
@@ -28,9 +25,10 @@ _start:
 
 	call root			#obliczenie pierwiastka do późniejszych obliczeń
 
+	call millerRabin 		#test Millera-Rabina
+
 	call naiveAproach		#naiwne podejście
 
-	#call millerRabin 		#test Millera-Rabina
 
 	movl $SYS_EXIT, %eax		#kod komendy systemowej wyjscia
 	xorl %ebx, %ebx			#zwraca status 0

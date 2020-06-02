@@ -11,10 +11,10 @@
 	.equ SYS_TIME, 13
 .section .text
 
-.global srand_vec, seed
+.global srand, seed
 
-.type srand_vec, @function
-srand_vec:
+.type srand, @function
+srand:
 	pushl %ebp
 	movl %esp, %ebp			#prolog funkcji
 	pushl %ebx			#zachowanie rejestru ebx (zarezerwowany)

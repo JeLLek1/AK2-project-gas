@@ -28,6 +28,9 @@ root:
 	movl %esp, %ebp			#prolog funkcji (jakby trzeba bylo korzystac z argumentow
 	subl $16, %esp			#miejsce na zmienne lokalne
 
+	pushl %esi              	# zapisanie rejestrów lokalnych
+	pushl %ebx              	# zapisanie rejestrów lokalnych
+
 	#alokacja pamięci dla wyniku
 	movl dataLength, %eax
 	shll $2, %eax			#długość w bajtach
@@ -165,7 +168,9 @@ skipRootLoop:
 	addl $4, %esp			#zdjęcie argumentu
 	#===============================================================
 
-	
+	popl %ebx
+   	popl %esi
+
 	movl %ebp, %esp			#odtworzenie starego stosu
 	popl %ebp
 	ret

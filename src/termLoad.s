@@ -77,6 +77,9 @@ termLoad:
 	movl %esp, %ebp			#prolog funkcji (jakby trzeba bylo korzystac z argumentow
 	subl $8, %esp			#miejsce na zmienne lokalne
 
+	pushl %esi              	# zapisanie rejestrów lokalnych
+	pushl %ebx              	# zapisanie rejestrów lokalnych
+	
 	#wypisanie w terminalu informacji msg_load
 	movl $SYS_WRITE, %eax
 	movl $STD_OUT, %ebx
@@ -258,6 +261,9 @@ loadEndMil:
 
 	cmpl $0, millerTestCount	#gdy ilość testów równa 0 to błąd.
 	je error_0loaded
+
+	popl %ebx
+   	popl %esi
 
 	movl %ebp, %esp			#odtworzenie starego stosu
 	popl %ebp

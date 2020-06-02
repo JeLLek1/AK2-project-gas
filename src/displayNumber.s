@@ -28,6 +28,9 @@ displayNumber:
 	movl %esp, %ebp			#prolog funkcji (jakby trzeba bylo korzystac z argumentow
 	subl $12, %esp			#miejsce na zmienne lokalne
 
+	pushl %esi              	# zapisanie rejestrów lokalnych
+	pushl %ebx              	# zapisanie rejestrów lokalnych
+
 	movb $0, shift(%ebp)		#ilość przesunięć pierwszej liczby
 printNumber:
 	movl number(%ebp), %eax		#liczba do rejestru
@@ -51,6 +54,9 @@ skipAdd:
 	addb $4, shift(%ebp)		#zmiana co 4
 	cmpb $32, shift(%ebp)		#dopuki przesinięcie nie jest 0 to powtarzaj
 	jne printNumber
+
+	popl %ebx
+   	popl %esi
 
 	movl %ebp, %esp			#odtworzenie starego stosu
 	popl %ebp

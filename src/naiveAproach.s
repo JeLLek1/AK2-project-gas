@@ -47,6 +47,9 @@ naiveAproach:
 	movl %esp, %ebp			#prolog funkcji (jakby trzeba bylo korzystac z argumentow
 	subl $16, %esp			#miejsce na zmienne lokalne
 
+	pushl %esi              	# zapisanie rejestrów lokalnych
+	pushl %ebx              	# zapisanie rejestrów lokalnych
+
 	#wypisanie w terminalu informacji msg_info
 	movl $SYS_WRITE, %eax
 	movl $STD_OUT, %ebx
@@ -208,6 +211,9 @@ isPrime:
 	call allocate			#funkcja alokacji
 	addl $4, %esp			#zdjęcie argumentu
 	#===============================================================
+
+	popl %ebx
+   	popl %esi
 
 	movl %ebp, %esp			#odtworzenie starego stosu
 	popl %ebp

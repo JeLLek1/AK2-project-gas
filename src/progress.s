@@ -39,6 +39,9 @@ progress:
 	movl %esp, %ebp				#prolog funkcji (jakby trzeba bylo korzystac z argumentow
 	subl $8, %esp				#miejsce na zmienne lokalne
 
+	pushl %esi              	# zapisanie rejestrów lokalnych
+	pushl %ebx              	# zapisanie rejestrów lokalnych
+
 	movl dataLength, %eax
 	movl %eax, startIndex(%ebp)
 	decl startIndex(%ebp)			#indeks zmniejszony o 1 (do przedostatniej pozycji będzie wyświetlane) 
@@ -88,6 +91,9 @@ actualCheckSkip1:
 	movl $MSG_ENDLINE_L, %edx
 	int $0x80
 	#=========================================
+
+	popl %ebx
+   	popl %esi
 
 	movl %ebp, %esp			#odtworzenie starego stosu
 	popl %ebp

@@ -208,6 +208,17 @@ lexit:
     popl %esi
     popl %edi
     
+    pushl %eax              #przechowanie na stosie wyniku
+    #zwalnianie pamięci zabranej przez pomocniczą zmienną dla reszty
+    movl remainderLength(%ebp), %eax
+    shll $2, %eax           #długość w bajtach
+    negl %eax               #negacja długości w bajtach
+    pushl %eax              #argumnet funkcji
+    call allocate           #funkcja alokacji
+    addl $4, %esp           #zdjęcie argumentu
+    #===============================================================
+    popl %eax               #zwrócenie ze stosu wyniku
+
     movl %ebp, %esp			#odtworzenie starego stosu
 	popl %ebp
     ret

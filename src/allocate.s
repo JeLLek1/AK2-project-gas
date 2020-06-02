@@ -22,6 +22,9 @@ allocate:
 	mov %esp, %ebp			#nowa ramka call
 	subl $4, %esp			#miejsce na zmienną lokalną
 
+	pushl %esi              	# zapisanie rejestrów lokalnych
+	pushl %ebx              	# zapisanie rejestrów lokalnych
+
 	movl 8(%ebp), %esi		#argument funkcji
 
 	#pobranie wartości obecnego przerwania programu
@@ -41,6 +44,9 @@ allocate:
 	
 	movl -4(%ebp), %eax		#przywrócenie ze zmiennej lokalnej do rejestru startu
 
+	popl %ebx
+   	popl %esi
+	
 	movl %ebp, %esp
 	popl %ebp			#Przwywrócenie starej ramki call
 	ret

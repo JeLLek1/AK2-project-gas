@@ -22,6 +22,8 @@ shiftOne:
 	movl %esp, %ebp				#prolog funkcji (jakby trzeba bylo korzystac z argumentow
 	subl $4, %esp				#miejsce na zmienne lokalne
 
+	pushl %esi              		# zapisanie rejestrów lokalnych
+
 	movl $0, ifCf(%ebp)			#nadanie wartości początkowej
 	movl numberPtr(%ebp), %eax		#przeniesienie wskaźnika do rejestru
 	movl $0, %esi				#indeks
@@ -44,6 +46,8 @@ skipUnsetCf:
 	incl %esi				#zwiekszenie dlugosci do sprawdzenia
 	cmpl numberLength(%ebp), %esi
 	jl shiftLoop				#wykonuj dopoki mniejszy indeks od długości
+
+	popl %esi
 
 	movl %ebp, %esp				#odtworzenie starego stosu
 	popl %ebp

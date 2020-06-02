@@ -3,10 +3,9 @@
 # potem dzieli przez podany dzielnik (tutaj wprost podany, a docelowo powinien byc z arg)
 
 .section .data
-randomLength: .long 3
-.equ restTempPtr, -4
-.equ denomTempPtr, -8
-.equ randomStartPtr, -12
+	.equ restTempPtr, -4
+	.equ randomStartPtr, 8
+	.equ denomPtr, 12
 .section .bss
 .lcomm data, 4
 
@@ -16,71 +15,62 @@ randomLength: .long 3
 
 .type lessrand, @function
 lessrand:
-    pushl %ebp
-    movl %esp, %ebp
-    subl $16, %esp
+    	pushl %ebp
+    	movl %esp, %ebp
+    	subl $8, %esp
   
-    pushl %edi              # save local register
-    pushl %esi              # save local register
-    pushl %ebx              # save local register
+    	pushl %edi              # save local register
+    	pushl %esi              # save local register
+    	pushl %ebx              # save local register
 
-    #alokacja pamięci dla reszty z dzielenia
-	movl randomLength, %eax
+    	#alokacja pamięci dla reszty z dzielenia
+	movl dataLength, %eax
 	shll $2, %eax				#długość w bajtach
 	pushl %eax				#argumnet funkcji
 	call allocate				#funkcja alokacji
 	addl $4, %esp				#zdjęcie argumentu
 	movl %eax, restTempPtr(%ebp)		#wynik funkcji
 	#==========================================
-
-# dzielnik - trzeba zamienic na pobieranie dzielnika z argumentu
-# i wtedy usunąć alokację oraz wpisanie wartosci
-	#alokacja pamięci dla dzielnika
-	movl randomLength, %eax
-	shll $2, %eax				#długość w bajtach
-	pushl %eax				#argumnet funkcji
-	call allocate				#funkcja alokacji
-	addl $4, %esp				#zdjęcie argumentu
-	movl %eax, denomTempPtr(%ebp)	#wynik funkcji
-	#==========================================
-
-	movl denomTempPtr(%ebp), %eax
-    movl $2000, 4(%eax)
-
-
-    #alokacja pamięci dla liczby ikrementowanej
-	movl randomLength, %eax
-	shll $2, %eax				#długość w bajtach
-	pushl %eax				#argumnet funkcji
-	call allocate				#funkcja alokacji
-	addl $4, %esp				#zdjęcie argumentu
-	movl %eax, randomStartPtr(%ebp)	#wynik funkcji
-	#==========================================
-
     
-
-    call srand_vec
-    pushl randomLength
+    	pushl dataLength
 	pushl randomStartPtr(%ebp)
-    call random_vec
-    addl $8, %esp
+    	call random
+    	addl $8, %esp
 
-	pushl randomLength
-    pushl randomStartPtr(%ebp)
-    pushl randomLength
+	pushl dataLength
+    	pushl randomStartPtr(%ebp)
+   	pushl dataLength
 	pushl restTempPtr(%ebp)
-	pushl randomLength
-	pushl denomTempPtr(%ebp)
+	pushl dataLength
+	pushl denomPtr(%ebp)
 	call bindiv # - tu twoja funkcja
 	addl $20, %esp
-aft:	
-    movl restTempPtr(%ebp), %eax	# reszta z dzielenia jako wynik
+	
+    	#skopiowanie reszty do wyniku
+	movl $0, %esi				#indeks od 0
+	movl randomStartPtr(%ebp), %eax		#wskaźnik na randomStartPtr do rejestru
+	movl restTempPtr(%ebp), %edx		#wskaźnik na restTempPtr do rejestru
+copyTempRes:
+	movl (%edx, %esi, 4), %ebx		#przechowanie wartości w rejestrze
+	movl %ebx, (%eax, %esi, 4)		#przeniesienie wartości z resultTmp do result
+	incl %esi				#zwiększenie indeksu
+	cmpl dataLength, %esi
+	jb copyTempRes 				#dopóki indeks mniejszy od długości powtarzaj kopiowanie
+	#============================
 
-func_exit:
-    popl %ebx
-    popl %esi
-    popl %edi
+    	#zwalnianie pamięci zabranej przez reszte z dzielenia
+    	movl dataLength, %eax
+   	shll $2, %eax           #długość w bajtach
+   	negl %eax               #negacja długości w bajtach
+   	pushl %eax              #argumnet funkcji
+    	call allocate           #funkcja alokacji
+    	addl $4, %esp           #zdjęcie argumentu
+   	#===============================================================
 
-    movl %ebp, %esp			#odtworzenie starego stosu
+    	popl %ebx
+    	popl %esi
+    	popl %edi
+
+    	movl %ebp, %esp			#odtworzenie starego stosu
 	popl %ebp
     ret

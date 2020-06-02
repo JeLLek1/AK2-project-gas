@@ -19,19 +19,16 @@
 	.equ randC, 12345
 .section .text
 
-.global random_vec
+.global random
 
-.type random_vec, @function
-random_vec:
+.type random, @function
+random:
 	pushl %ebp
 	movl %esp, %ebp				#prolog funkcji 
 	subl $8, %esp
-	pushl %edi              # save local register
-    pushl %esi              # save local register
-    pushl %ebx              # save local register
-
-	movl length(%ebp), %eax
-	movl %eax, -4(%ebp)
+	pushl %edi              		# save local register
+    	pushl %esi              		# save local register
+    	pushl %ebx              		# save local register
 
 	movl seed, %eax				#pobranie aktualnego seedu
 
@@ -46,14 +43,14 @@ random_loop:
 	movl %eax, (%ebx, %esi, 4)		#przeniesienie wyniku do odpowiedniej pozycji wektora
 
 	incl %esi
-	cmpl -4(%ebp), %esi
+	cmpl length(%ebp), %esi
 	jb random_loop				#wykonaj dla wszystkich pozycji wektora
 
 	movl %eax, seed 			#nowy seed do pamięci
 
 	popl %ebx
-    popl %esi
-    popl %edi
+	popl %esi
+	popl %edi
 	movl %ebp, %esp				#odtworzenie starego stosu
 	popl %ebp
 	ret

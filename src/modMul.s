@@ -32,6 +32,9 @@ modMul:
 	mov %esp, %ebp			#nowa ramka call
 	subl $20, %esp			#miejsce na zmienne lokalne
 
+	pushl %esi              	# zapisanie rejestrów lokalnych
+	pushl %ebx              	# zapisanie rejestrów lokalnych
+
 	#alokacja pamięci dla maski
 	movl dataLength, %eax
 	shll $2, %eax				#długość w bajtach
@@ -245,6 +248,9 @@ modMulLoopSkip:
 	call allocate			#funkcja alokacji
 	addl $4, %esp			#zdjęcie argumentu
 	#===============================================================
+
+	popl %ebx
+   	popl %esi
 
 	movl %ebp, %esp
 	popl %ebp			#Przwywrócenie starej ramki call
