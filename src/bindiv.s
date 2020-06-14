@@ -34,6 +34,8 @@ bindiv:
     movl $0, %edi
     movl $32, %ecx
 
+    movl $0, msb(%ebp)
+
 start:
     movl %eax, %ebx
     and $0x1, %ebx
